@@ -18,16 +18,17 @@ end
 
 function estimate_reflex(
     wvec::AbstractVector,
+    detector_gonio::Goniometer,
     detector::Detector,
-    gonio::Goniometer,
+    sample_gonio::Goniometer,
     detector_angle,
-    gonio_angle,
+    sample_angle,
     coord;
     cryst_pos::Point3 = Point3(0, 0, 0)u"m",
 )
-    p = rotate(detector, detector_angle...)(coord...)
+    p = detector_gonio(detector_angle...)(detector)(coord...)
     s = Vec3(wvec - norm(wvec) * normalize(p - cryst_pos))
-    inv(gonio(gonio_angle...))(s)
+    inv(sample_gonio(sample_angle...))(s)
 end
 
 function combine_reflexes_fast(reflexes, ΔE)
