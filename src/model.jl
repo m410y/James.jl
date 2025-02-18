@@ -7,9 +7,9 @@ function intensity_still(
 )
     s = reflex(cryst, hkl)
     r = Vec3(detect(coord...) - cryst.pos)
-    n, d = normalize(r), norm(d)
+    n, d = normalize(r), norm(r)
     k = n * dot(s, s) / 2dot(n, s) - s
-    spec(k) / d^2
+    spec(k)
 end
 
 function intensity_scan(
@@ -19,12 +19,12 @@ function intensity_scan(
     hkl::AbstractVector,
     coord,
     axis::Axis,
-    angles::Pair{Number,Number},
+    angles::NTuple{2,Number},
 )
     solve(
         IntegralProblem(
             (u, p) -> intensity_still(spec, detect, axis(u)(cryst), hkl, coord),
-            angles,
+            NoUnits.(angles),
         ),
         HCubatureJL()
     ).u
