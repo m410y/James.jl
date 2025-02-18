@@ -1,106 +1,81 @@
-abstract type Profile2D end
+abstract type Profile{N} end
 
-function intensity(prof::Profile2D)
+const Profile2D = Profile{2}
+
+function intensity(prof::Profile)
     solve(
-        IntegralProblem(((x, y), p) -> prof(x, y), [-Inf, -Inf], [Inf, Inf]),
+        IntegralProblem((coord, p) -> prof(coord...), [-Inf, -Inf], [Inf, Inf]),
         HCubatureJL(),
     ).u
 end
 
-function coord_mean(prof::Profile2D)
+function coord_mean(prof::Profile)
     int =
         solve(
             IntegralProblem(
-                ((x, y), p) -> [x, y, 1] * prof(x, y),
+                (coord, p) -> [1, coord...] * prof(coord...),
                 [-Inf, -Inf],
                 [Inf, Inf],
             ),
             HCubatureJL(),
         ).u
-    int[1:2] / int[3]
+    int[2:end] / int[1]
 end
 
-function coord_disp(prof::Profile2D)
+function coord_disp(prof::Profile)
     int =
         solve(
             IntegralProblem(
-                ((x, y), p) -> [x, y, 1] * [x, y, 1]' * prof(x, y),
+                (coord, p) -> [1, coord...] * [1, coord...]' * prof(coord...),
                 [-Inf, -Inf],
                 [Inf, Inf],
             ),
             HCubatureJL(),
         ).u
-    (int[1:2, 1:2] * int[3, 3] - int[1:2, 3] * int[3, 1:2]') / int[3, 3]^2
+    (int[2:end, 2:end] * int[1, 1] - int[2:end, 1] * int[1, 2:end]') / int[1, 1]^2
 end
 
-struct Gaussian <: Profile2D end
-(::Gaussian)(x::Number, y::Number) = exp(-(x^2 + y^2) / 2) / 2π
+struct Gaussian{N} <: Profile{N} end
+(::Gaussian{N})(coord::Vararg{Number,N}) where {N} =
+    exp(-sum(abs2, coord) / 2) * (2π)^(-N / 2)
 intensity(::Gaussian) = 1
-coord_mean(::Gaussian) = [0, 0]
-coord_disp(::Gaussian) = Diagonal([1, 1])
+coord_mean(::Gaussian{N}) where {N} = Vec(zeros(N))
+coord_disp(::Gaussian) = Diagonal(ones(N))
 
-struct SpectrumSlice{S<:Spectrum} <: Profile2D
-    spec::S
-    k0::Vec3
-    kx::Vec3
-    ky::Vec3
-end
-
-(slice::SpectrumSlice)(x::Number, y::Number) =
-    slice.spec(slice.k0 + x * slice.kx + y * slice.ky)
-
-struct SpectrumProjection{S<:Spectrum} <: Profile2D
-    spec::S
-    k0::Vec3
-    kx::Vec3
-    ky::Vec3
-    kv::Vec3
-end
-
-function (proj::SpectrumProjection)(x::Number, y::Number)
-    solve(
-        IntegralProblem(
-            (t, p) -> 1e15*ustrip(proj.spec(proj.k0 + x * proj.kx + y * proj.ky + t * proj.kv)),
-            (-1, 1),
-        ),
-        HCubatureJL(), reltol=1e-10
-    ).u
-end
-
-struct GriddedProfile <: Profile2D
+struct GriddedProfile{N} <: Profile{N}
     ext::Interpolations.AbstractExtrapolation
 end
 
-(grid::GriddedProfile)(x::Number, y::Number) = grid.ext(x, y)
+(prof::GriddedProfile{N})(coord::Vararg{Number,N}) where {N} = prof.ext(coord...)
 
-struct AffinedProfile{P<:Profile2D} <: Profile2D
+struct AffinedProfile{N,P<:Profile{N}} <: Profile{N}
     profile::P
     A::Number
-    M::Mat2
-    V::Vec2
+    M::Mat{Tuple{N,N}}
+    V::Vec{N}
 end
 
-function (aff::AffinedProfile)(x::Number, y::Number)
-    new_x, new_y = aff.M * [x, y] + aff.V
-    aff.A * aff.profile(new_x, new_y)
+function (prof::AffinedProfile{N})(coord::Vararg{Number,N}) where {N}
+    new_coord = prof.M * collect(coord) + prof.V
+    prof.A * prof.profile(new_coord...)
 end
-intensity(aff::AffinedProfile) = aff.A / det(aff.M) * intensity(aff.profile)
-coord_mean(aff::AffinedProfile) = inv(aff.M) * (coord_mean(aff.profile) - aff.V)
-coord_disp(aff::AffinedProfile) = inv(aff.M) * coord_disp(aff.profile) * inv(aff.M)'
+intensity(prof::AffinedProfile) = prof.A / det(prof.M) * intensity(prof.profile)
+coord_mean(prof::AffinedProfile) = inv(prof.M) * (coord_mean(prof.profile) - prof.V)
+coord_disp(prof::AffinedProfile) = inv(prof.M) * coord_disp(prof.profile) * inv(prof.M)'
 
-struct ProfileSum{N} <: Profile2D
-    profs::NTuple{N,Profile2D}
+struct ProfileSum{N,M} <: Profile{N}
+    profs::NTuple{M,Profile{N}}
 end
 
-(psum::ProfileSum)(x::Number, y::Number) = sum(prof -> prof(x, y), psum.profs)
-intensity(psum::ProfileSum) = sum(intensity, psum.profs)
-coord_mean(psum::ProfileSum) =
-    sum(prof -> intensity(prof) * coord_mean(prof), psum.profs) / sum(intensity, psum.profs)
+(prof::ProfileSum)(coord::Vararg{Number,N}) where {N} = sum(p -> p(coord...), prof.profs)
+intensity(prof::ProfileSum) = sum(intensity, prof.profs)
+coord_mean(prof::ProfileSum) =
+    sum(p -> intensity(p) * coord_mean(p), prof.profs) / sum(intensity, prof.profs)
 
-Base.:+(left::Profile2D, right::Profile2D) = ProfileSum{2}((left, right))
-Base.:+(left::ProfileSum{N}, right::Profile2D) where {N} =
-    ProfileSum{N + 1}((left.profs..., right))
-Base.:+(left::Profile2D, right::ProfileSum{N}) where {N} =
-    ProfileSum{N + 1}((left, right.profs...))
-Base.:+(left::ProfileSum{N}, right::ProfileSum{M}) where {N,M} =
-    ProfileSum{N + M}((left.profs..., right.profs...))
+Base.:+(left::Profile{N}, right::Profile{N}) where {N} = ProfileSum{N,2}((left, right))
+Base.:+(left::ProfileSum{N,M}, right::Profile{N}) where {N,M} =
+    ProfileSum{N,M + 1}((left.profs..., right))
+Base.:+(left::Profile{N}, right::ProfileSum{N,M}) where {N,M} =
+    ProfileSum{N,M + 1}((left, right.profs...))
+Base.:+(left::ProfileSum{N,M1}, right::ProfileSum{N,M2}) where {N,M1,M2} =
+    ProfileSum{N,M1 + M2}((left.profs..., right.profs...))

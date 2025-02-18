@@ -1,55 +1,31 @@
-function intensity_still_precise(
+function intensity_still(
     spec::Spectrum,
-    detector::Detector2D,
+    detect::Detector,
     cryst::SingleCrystal,
     hkl::AbstractVector,
-    x::Number,
-    y::Number,
+    coord,
 )
     s = reflex(cryst, hkl)
-    n = Vec3(normalize(detector(x, y) - cryst.pos))
+    r = Vec3(detect(coord...) - cryst.pos)
+    n, d = normalize(r), norm(d)
     k = n * dot(s, s) / 2dot(n, s) - s
-    spec(k)
+    spec(k) / d^2
 end
 
-function profile_still_approx(
+function intensity_scan(
     spec::Spectrum,
-    detector::Detector2D,
+    detect::Detector,
     cryst::SingleCrystal,
     hkl::AbstractVector,
-    x::Number,
-    y::Number,
+    coord,
+    axis::Axis,
+    angles::Pair{Number,Number},
 )
-    s = reflex(cryst, hkl)
-    r = detector(x, y) - cryst.pos
-    n, d = Vec3(normalize(r)), norm(r)
-    k = n * dot(s, s) / 2dot(n, s) - s
-    nx = (detector.ex - n * dot(n, detector.ex)) / d
-    ny = (detector.ey - n * dot(n, detector.ey)) / d
-    kx = dot(s, s) / 2dot(n, s) * (nx - n * dot(s, nx) / dot(n, s))
-    ky = dot(s, s) / 2dot(n, s) * (ny - n * dot(s, ny) / dot(n, s))
-    SpectrumSlice(spec, Vec3(k - kx * x - ky * y), Vec3(kx), Vec3(ky))
-end
-
-function profile_scan_approx(
-    spec::Spectrum,
-    detector::Detector2D,
-    (cryst_start, cryst_stop)::Pair{SingleCrystal,SingleCrystal},
-    hkl::AbstractVector,
-    x::Number,
-    y::Number,
-)
-    s_start = reflex(cryst_start, hkl)
-    s_stop = reflex(cryst_stop, hkl)
-    s = (s_start + s_stop) / 2
-    ds = (s_stop - s_start) / 2
-    r = detector(x, y) - (cryst_start.pos + cryst_stop.pos) / 2
-    n, d = normalize(r), norm(r)
-    k = n * dot(s, s) / 2dot(n, s) - s
-    nx = (detector.ex - n * dot(n, detector.ex)) / d
-    ny = (detector.ey - n * dot(n, detector.ey)) / d
-    kx = dot(s, s) / 2dot(n, s) * (nx - n * dot(s, nx) / dot(n, s))
-    ky = dot(s, s) / 2dot(n, s) * (ny - n * dot(s, ny) / dot(n, s))
-    kv = n * (dot(s, ds) / dot(n, s) - dot(s, s) * dot(n, ds) / 2dot(n, s)^2) - ds
-    SpectrumProjection(spec, Vec3(k - kx * x - ky * y), Vec3(kx), Vec3(ky), Vec3(kv))
+    solve(
+        IntegralProblem(
+            (u, p) -> intensity_still(spec, detect, axis(u)(cryst), hkl, coord),
+            angles,
+        ),
+        HCubatureJL()
+    ).u
 end

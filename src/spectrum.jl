@@ -53,7 +53,7 @@ end
 
 intensity(spec::DoubletKαX) = spec.I
 wvec_mean(spec::DoubletKαX) =
-    [1, 0, 0] * (spec.ratio * spec.E1 + spec.E2) / (spec.ratio + 1)
+    Vec3(1, 0, 0) * (spec.ratio * spec.E1 + spec.E2) / (spec.ratio + 1)
 wvec_disp(spec::DoubletKαX) = Diagonal([Inf * spec.ΔE^2, spec.Δk^2, spec.Δk^2])
 
 struct GriddedSpectrum

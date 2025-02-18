@@ -35,7 +35,7 @@ function circle_intersection_angles(a, b, c)
         γ = 2atan(sqrt(sin_a * sin_b), sqrt(sin_s * sin_c))
     end
 
-    α*u"rad", β*u"rad", γ*u"rad"
+    α * u"rad", β * u"rad", γ * u"rad"
 end
 
 function orient_angles(

@@ -1,4 +1,7 @@
-function describe_peak(img::AbstractArray, indices::AbstractArray{CartesianIndex{N}}) where N
+function describe_peak(
+    img::AbstractArray,
+    indices::AbstractArray{CartesianIndex{N}},
+) where {N}
     coord = sum(idx -> SVector{N}(idx.I...) * img[idx], indices) / sum(img[indices])
     size = sqrt(length(indices))
     amplitude = maximum(img[indices])
@@ -7,13 +10,16 @@ end
 
 function collect_peaks_higher(img::AbstractArray; baseline::Number = 2median(img))
     labeled_mask = label_components(img .> baseline)
-    map(i -> describe_peak(img, i), component_indices(CartesianIndex, labeled_mask)[begin+1:end])
+    map(
+        i -> describe_peak(img, i),
+        component_indices(CartesianIndex, labeled_mask)[begin+1:end],
+    )
 end
 
 function estimate_reflex(
     wvec::AbstractVector,
-    detector::Detector2D,
-    gonio::MultiaxisGoniometer,
+    detector::Detector,
+    gonio::Goniometer,
     detector_angle,
     gonio_angle,
     coord;
@@ -70,7 +76,8 @@ function collect_sfrm_orient(files)
     end
     select!(
         df,
-        :angles => ByRow(angles -> (angles[1]u"°", (angles[3]u"°", angles[2]u"°"))) =>[:tth, :ϕω],
+        :angles =>
+            ByRow(angles -> (angles[1]u"°", (angles[3]u"°", angles[2]u"°"))) => [:tth, :ϕω],
         :peak => [:coord, :size, :amplitude],
     )
 end

@@ -1,15 +1,16 @@
-abstract type Goniometer{N} end
-
-struct MultiaxisGoniometer{N} <: Goniometer{N}
+struct Goniometer{N}
     axes::NTuple{N,Axis}
     prelim::Transformation
 end
 
-const OneCircleGoniometer = MultiaxisGoniometer{1}
-const TwoCircleGoniometer = MultiaxisGoniometer{2}
-const ThreeCircleGoniometer = MultiaxisGoniometer{3}
+const OneCircleGoniometer = Goniometer{1}
+const TwoCircleGoniometer = Goniometer{2}
+const ThreeCircleGoniometer = Goniometer{3}
 
-function MultiaxisGoniometer(axes::Vararg{Union{Transformation,Axis}}; prelim = IdentityTransformation())
+function Goniometer(
+    axes::Vararg{Union{Transformation,Axis}};
+    prelim = IdentityTransformation(),
+)
     active_axes = Axis[]
     for axis in axes[end:-1:begin]
         if axis isa Transformation
@@ -18,16 +19,16 @@ function MultiaxisGoniometer(axes::Vararg{Union{Transformation,Axis}}; prelim = 
             push!(active_axes, prelim(axis))
         end
     end
-    MultiaxisGoniometer(Tuple(active_axes[end:-1:begin]), prelim)
+    Goniometer(Tuple(active_axes[end:-1:begin]), prelim)
 end
 
-function fix_angle(gonio::MultiaxisGoniometer, (n, angle)::Pair)
+function fix_angle(gonio::Goniometer, (n, angle)::Pair)
     axes = Any[gonio.axes...]
     axes[n] = axes[n](angle)
-    MultiaxisGoniometer(axes..., prelim = gonio.prelim)
+    Goniometer(axes..., prelim = gonio.prelim)
 end
 
-function (gonio::MultiaxisGoniometer{N})(angles::Vararg{Number,N}) where {N}
+function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
     trans = gonio.prelim
     for (angle, axis) in zip(angles, gonio.axes)
         trans = axis(angle) ∘ trans
@@ -48,4 +49,15 @@ function reflection_angles(gonio::OneCircleGoniometer, s::AbstractVector, k::Abs
     K = normalize(k)
     θ = asin(norm(s) / 2norm(k))u"rad"
     reflection_angles(A, S, K, θ)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}) where {N}
+    print(io, "$N-circle Goniometer:\n")
+    for (n, axis) in enumerate(gonio.axes)
+        print(io, "  axis $n:\n")
+        print(io, "    direction: [$(axis.v[1]), $(axis.v[2]), $(axis.v[3])]\n")
+        print(io, "    position: [$(axis.p[1]), $(axis.p[2]), $(axis.p[3])]\n")
+    end
+    print(io, "  preliminary transform:\n")
+    print(io, "    $(gonio.prelim)")
 end

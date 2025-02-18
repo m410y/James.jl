@@ -1,54 +1,36 @@
-struct Detector2D
-    size::NTuple{2,Number}
+struct Detector{N}
+    size::NTuple{N,Number}
     p::Point3
-    ex::Vec3
-    ey::Vec3
-    axis::Axis
+    e::NTuple{N,Vec3}
 end
 
-function rotate(detector::Detector2D, angle::Number)
-    rot = detector.axis(angle)
-    Detector2D(
-        detector.size,
-        rot(detector.p),
-        rot(detector.ex),
-        rot(detector.ey),
-        detector.axis,
-    )
+const Detector2D = Detector{2}
+
+(::IdentityTransformation)(detector::Detector) = detector
+function (trans::LinearMap)(detector::Detector)
+    Detector(detector.size, trans(detector.p), trans.(detector.e))
+end
+function (trans::Translation)(detector::Detector)
+    Detector(detector.size, trans(detector.p), trans.(detector.e))
+end
+function (trans::AffineMap)(detector::Detector)
+    Detector(detector.size, trans(detector.p), trans.(detector.e))
 end
 
-(::IdentityTransformation)(detector::Detector2D) = copy(detector)
-function (trans::LinearMap)(detector::Detector2D)
-    Detector2D(
-        detector.size,
-        trans(detector.p),
-        trans(detector.ex),
-        trans(detector.ey),
-        detector.axis,
-    )
-end
-function (trans::Translation)(detector::Detector2D)
-    Detector2D(
-        detector.size,
-        trans(detector.p),
-        trans(detector.ex),
-        trans(detector.ey),
-        detector.axis,
-    )
-end
-function (trans::AffineMap)(detector::Detector2D)
-    Detector2D(
-        detector.size,
-        trans(detector.p),
-        trans(detector.ex),
-        trans(detector.ey),
-        detector.axis,
-    )
+function (detector::Detector{N})(coord::Vararg{Number,N}) where {N}
+    detector.p + sum(detector.e .* coord)
 end
 
-function (detector::Detector2D)(x::Number, y::Number)
-    detector.p + detector.ex * x + detector.ey * y
+function intersect(detector::Detector, p::AbstractVector, v::AbstractVector)
+    (Matrix(hcat(-ustrip(v)u"m", detector.e...)) \ (p - detector.p))[begin+1:end]
 end
 
-intersect(detector::Detector2D, p::AbstractVector, v::AbstractVector) =
-    (p - detector.p) \ [ex ey -v]
+function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}
+    print(io, "$N-dimentional Detector:\n")
+    print(io, "  size: $(detector.size)\n")
+    print(io, "  zero position: [$(detector.p[1]), $(detector.p[2]), $(detector.p[3])]\n")
+    print(io, "  coordinate lines:\n")
+    for (n, e) in enumerate(detector.e)
+        print(io, "    line $n: [$(e[1]), $(e[2]), $(e[3])]\n")
+    end
+end
