@@ -22,7 +22,7 @@ function (detector::Detector{N})(coord::Vararg{Number,N}) where {N}
 end
 
 function intersect(detector::Detector, p::AbstractVector, v::AbstractVector)
-    (Matrix(hcat(-ustrip(v)u"m", detector.e...)) \ (p - detector.p))[begin+1:end]
+    (Matrix(hcat(-ustrip(v)u"m", detector.e...))\(p-detector.p))[begin+1:end]
 end
 
 function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}

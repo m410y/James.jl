@@ -51,9 +51,12 @@ end
 struct AffinedProfile{N,P<:Profile{N}} <: Profile{N}
     profile::P
     A::Number
-    M::Mat{Tuple{N,N}}
     V::Vec{N}
+    M::Mat{N,N}
 end
+
+AffinedProfile{N}(prof::Profile{N}, args::Vararg{Number}) where {N} =
+    AffinedProfile(p[1], args[1], Vec{N}(args[2:1+N]), Mat{Tuple{N,N}}(args[2+N:end]))
 
 function (prof::AffinedProfile{N})(coord::Vararg{Number,N}) where {N}
     new_coord = prof.M * collect(coord) + prof.V

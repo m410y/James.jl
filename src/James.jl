@@ -5,6 +5,8 @@ using Unitful, UnitfulEquivalences
 using GeometryBasics, CoordinateTransformations, Rotations
 
 using Statistics
+using IterTools
+
 using DataFrames
 using ImageFiltering, ImageMorphology
 using FileIO
@@ -27,5 +29,6 @@ include("crystal.jl")
 include("model.jl")
 include("refine.jl")
 include("indexing.jl")
+include("files.jl")
 
 end # module James
