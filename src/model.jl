@@ -28,7 +28,7 @@ end
 function intensity(model::ScanModel, hkl::AbstractVector, coord)
     problem = IntegralProblem(
         (angle, _) -> intensity(StillModel(model, angle), hkl, coord),
-        NoUnits.(model.angles)
+        NoUnits.(model.angles),
     )
     solve(problem, HCubatureJL()).u
 end
@@ -36,13 +36,13 @@ end
 function profile(model::StillModel{N}, hkl::AbstractVector, grid; baseline = 0) where {N}
     vals = map(coord -> intensity(model, hkl, coord), product(grid...))
     itp = interpolate(grid, vals, Gridded(Linear()))
-    GriddedProfile{N}(extrapolate(itp, baseline))
+    extrapolate(itp, baseline)
 end
 
 function profile(model::ScanModel{N}, hkl::AbstractVector, grid; baseline = 0) where {N}
     vals = [intensity(model, hkl, coord) for coord in product(grid...)]
     itp = interpolate(grid, vals, Gridded(Linear()))
-    GriddedProfile{N}(extrapolate(itp, baseline))
+    extrapolate(itp, baseline)
 end
 
 function reflex(model::StillModel, coord)

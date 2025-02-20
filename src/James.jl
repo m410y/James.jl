@@ -13,7 +13,8 @@ using FileIO
 
 using Interpolations
 using Integrals
-using Optimization
+using Optimization, FiniteDiff
+using Zygote
 
 # using Crystalline
 # using FFTW
