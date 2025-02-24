@@ -16,6 +16,14 @@ function collect_peaks_higher(img::AbstractArray; baseline::Number = 2median(img
     )
 end
 
+function reflex(model::StillModel, coord)
+    r = model.detect(coord...) - model.cryst.pos
+    n = normalize(r)
+    k0 = wvec_mean(model.spec)
+    s = norm(k0) * n - k0
+    Vec3(inv(Matrix(model.cryst.UB)) * s)
+end
+
 function estimate_reflex(
     wvec::AbstractVector,
     detector_gonio::Goniometer,

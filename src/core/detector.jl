@@ -21,7 +21,7 @@ function (detector::Detector{N})(coord::Vararg{Number,N}) where {N}
     detector.p + sum(detector.e .* coord)
 end
 
-function intersect(detector::Detector, p::AbstractVector, v::AbstractVector)
+function intersect(detector::Detector{2}, p::AbstractVector, v::AbstractVector)
     (Matrix(hcat(-ustrip(v)u"m", detector.e...))\(p-detector.p))[begin+1:end]
 end
 
