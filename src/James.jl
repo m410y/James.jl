@@ -16,20 +16,17 @@ using Integrals
 using Optimization, FiniteDiff
 using Zygote
 
-# using Crystalline
-# using FFTW
+include("core/utils.jl")
+include("core/axis.jl")
+include("core/angles.jl")
+include("core/goniometer.jl")
+include("core/detector.jl")
+include("core/spectrum.jl")
+include("core/crystal.jl")
+include("core/model.jl")
 
-include("utils.jl")
-include("axis.jl")
-include("angles.jl")
-include("goniometer.jl")
-include("detector.jl")
-include("spectrum.jl")
+include("hunt.jl")
 include("profile.jl")
-include("crystal.jl")
-include("model.jl")
 include("refine.jl")
-include("indexing.jl")
-include("files.jl")
 
-end # module James
+end
