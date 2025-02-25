@@ -1,7 +1,16 @@
-function profile(model::Model, hkl::AbstractVector, grid; baseline = 0)
-    vals = [intensity(model, hkl, coord) for coord in product(grid...)]
-    itp = interpolate(grid, vals, Gridded(Linear()))
-    extrapolate(itp, baseline)
+function reflex(model::StillModel, coord)
+    r = model.detect(coord...) - model.cryst.pos
+    n = normalize(r)
+    k0 = wvec_mean(model.spec)
+    s = norm(k0) * n - k0
+    Vec3(inv(Matrix(model.cryst.UB)) * s)
+end
+
+function profile(model::Model, peak::Peak)
+    hkl = reflex(model, peak.coord)
+    vals = [idx -> intensity(model, hkl, idx.I) for idx in peak.region]
+    itp = interpolate(axes(vals), vals, Gridded(Linear()))
+    extrapolate(itp, 0.0)
 end
 
 struct SimpleConvParams{N}

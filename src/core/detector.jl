@@ -17,16 +17,17 @@ function (trans::AffineMap)(detector::Detector)
     Detector(detector.size, trans(detector.p), trans.(detector.e))
 end
 
-function (detector::Detector{N})(coord::Vararg{Number,N}) where {N}
+function (detector::Detector)(coord::Vararg{Number,N})
     detector.p + sum(detector.e .* coord)
 end
 
-function intersect(detector::Detector{2}, p::AbstractVector, v::AbstractVector)
-    (Matrix(hcat(-ustrip(v)u"m", detector.e...))\(p-detector.p))[begin+1:end]
+function intersect(detector::Detector, p::AbstractVector, v::AbstractVector)
+    _, coord... = hcat(-ustrip(v), detector.e...) \ (p - detector.p)
+    NoUnits.(coord)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}
-    print(io, "$N-dimentional Detector:\n")
+function Base.show(io::IO, ::MIME"text/plain", detector::Detector)
+    print(io, "$(length(detector.size))-dimentional Detector:\n")
     print(io, "  size: $(detector.size)\n")
     print(io, "  zero position: [$(detector.p[1]), $(detector.p[2]), $(detector.p[3])]\n")
     print(io, "  coordinate lines:\n")

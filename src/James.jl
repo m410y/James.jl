@@ -25,6 +25,7 @@ include("core/spectrum.jl")
 include("core/crystal.jl")
 include("core/model.jl")
 
+include("load.jl")
 include("peak.jl")
 include("profile.jl")
 include("refine.jl")
