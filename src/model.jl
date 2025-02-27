@@ -46,8 +46,8 @@ reflex(model::ScanModel, coord) = reflex(StillModel(model, model.increment / 2),
 function coord(model::StillModel, hkl::AbstractVector)
     k0 = mean(model.spectrum)
     s = model.sample.UB * hkl
-    kd = k0 + s/2 + dot(k, s) / dot(s, s)
-    intersect(model.detector, model.sample.p, kd)
+    kd = k0 + s / 2 + dot(k, s) / dot(s, s)
+    intersect_coord(model.detector, model.sample.p, kd)
 end
 
 function coord(model::ScanModel, hkl::AbstractVector)
@@ -57,5 +57,12 @@ function coord(model::ScanModel, hkl::AbstractVector)
     nearest = findmin(abs, rem2pi.(NoUnits.(angles .- model.increment / 2), RoundNearest))
     angle = angles[last(nearest)]
     kd = k0 + model.axis(angle)(s0)
-    intersect(model.detector, model.sample.p, kd)
+    intersect_coord(model.detector, model.sample.p, kd)
+end
+
+function profile(model::Model, indices::NTuple{N,AbstractRange}, coord; mul = 1) where {N}
+    hkl = reflex(model, coord)
+    grid = Tuple((range(first(ax), last(ax), length(ax) * mul) for ax in indices))
+    vals = [idx -> intensity(model, hkl, idx.I) for idx in product(grid...)]
+    linear_interpolation(grid, vals, extrapolation_bc = 0.0)
 end

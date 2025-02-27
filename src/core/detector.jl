@@ -23,7 +23,7 @@ end
 
 function intersect_coord(detector::Detector, p::AbstractVector, v::AbstractVector)
     _, coord... = hcat(-ustrip(v), detector.e...) \ (p - detector.p)
-    NoUnits.(coord)
+    Vec(NoUnits.(coord)...)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", detector::Detector)

@@ -1,12 +1,13 @@
 struct Frame{T,N}
     image::AbstractArray{T,N}
-    settings::FrameSettings
+    setting::FrameSetting
 end
 
 struct Peak{N}
     intensity::Number
+    baseline::Number
     coord::Vec{N}
-    indices::NTuple{N,AbstractRange}
+    region::CartesianIndices{N}
     frame::Frame
 end
 
@@ -15,8 +16,9 @@ function characterize_peak(frame::Frame, coord1, coord2)
     min_coord = first.(minmax_coord)
     max_coord = last.(minmax_coord)
     region = CartesianIndex(min_coord...):CartesianIndex(max_coord...)
-    stat = sum(idx -> [1, idx.I...] * image[idx] for idx in region)
+    baseline = median(frame.image[region])
+    stat = sum(idx -> [1, idx.I...] * (frame.image[idx] - baseline) for idx in region)
     intensity = stat[begin]
     coord = stat[begin+1:end] / intensity
-    Peak(intensity, coord, region.indices, frame)
+    Peak(intensity, baseline, coord, region, frame)
 end

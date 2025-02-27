@@ -4,34 +4,34 @@ struct Experiment{M,N,K<:Spectrum,D<:Detector,S<:Sample}
     sample::Motorized{N,S}
 end
 
-abstract type FrameSettings end
+abstract type FrameSetting end
 
-struct StillFrameSettings{M,N} <: FrameSettings
+struct StillFrameSetting{M,N} <: FrameSetting
     angles_d::Vec{M}
     angles_s::Vec{N}
 end
 
-struct ScanFrameSettings{M,N} <: FrameSettings
+struct ScanFrameSetting{M,N} <: FrameSetting
     angles_d::Vec{M}
     angles_s::Vec{N}
     n_axis::Integer
     increment::Number
 end
 
-function model(model::Experiment, settings::StillFrameSettings)
+function model(experiment::Experiment, setting::StillFrameSetting)
     StillModel(
-        model.spectrum,
-        model.detector(settings.angles_d...),
-        model.sample(settings.angles_s...),
+        experiment.spectrum,
+        experiment.detector(setting.angles_d...),
+        experiment.sample(setting.angles_s...),
     )
 end
 
-function model(model::Experiment, settings::ScanFrameSettings)
+function model(experiment::Experiment, setting::ScanFrameSetting)
     ScanModel(
-        model.spectrum,
-        model.detector(settings.angles_d...),
-        model.sample(settings.angles_s...),
-        model.sample.goniometer.axes[settings.n_axis],
-        settings.increment
+        experiment.spectrum,
+        experiment.detector(setting.angles_d...),
+        experiment.sample(setting.angles_s...),
+        experiment.sample.goniometer.axes[setting.n_axis],
+        setting.increment,
     )
 end
