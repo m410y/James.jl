@@ -22,7 +22,7 @@ function Goniometer(
     Goniometer(Tuple(active_axes[end:-1:begin]), prelim)
 end
 
-function fix_angle(gonio::Goniometer, (n, angle)::Pair)
+function fix_angle(gonio::Goniometer, (n, angle))
     axes = Any[gonio.axes...]
     axes[n] = axes[n](angle)
     Goniometer(axes..., prelim = gonio.prelim)
@@ -41,10 +41,11 @@ function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer)
     for (n, axis) in enumerate(gonio.axes)
         print(io, "  axis $n:\n")
         print(io, "    direction: [$(axis.v[1]), $(axis.v[2]), $(axis.v[3])]\n")
-        print(io, "    position: [$(axis.p[1]), $(axis.p[2]), $(axis.p[3])]\n")
+        print(io, "    position: [$(axis.p[1]), $(axis.p[2]), $(axis.p[3])]")
+        if n != length(gonio.axes)
+            println(io)
+        end
     end
-    print(io, "  preliminary transform:\n")
-    print(io, "    $(gonio.prelim)")
 end
 
 struct Motorized{N,O}

@@ -3,14 +3,12 @@ module James
 using LinearAlgebra
 using StaticArrays
 using OffsetArrays
-using OffsetArrays: Origin
 using Statistics
 using IterTools
 using GeometryBasics
 using CoordinateTransformations
 using Rotations
 using Unitful
-using Unitful: Length, Energy
 using UnitfulEquivalences
 using DataFrames
 using ImageFiltering, ImageMorphology

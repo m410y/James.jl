@@ -65,7 +65,7 @@ function reflection_angles(
     AD = angle(axis, dir)
 
     ∠SAD = axis_angle(src, axis, dir)
-    Δα, _, _ = circle_intersection_angles(pi / 2 - θ, SA, AD)
+    Δα, _, _ = circle_intersection_angles(pi / 2 + θ, SA, AD)
 
     [∠SAD + Δα, ∠SAD - Δα]
 end

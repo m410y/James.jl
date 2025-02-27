@@ -1,6 +1,6 @@
 struct Axis
     v::Vec3
-    p::Point3{Length}
+    p::Point3
     Axis(v, p) = new(normalize(v), p)
 end
 
@@ -27,13 +27,13 @@ function Base.show(io::IO, ::MIME"text/plain", axis::Axis)
 end
 
 function orient_angles(axis₁::Axis, axis₂::Axis, src::AbstractVector, dst::AbstractVector)
-    S = normalize(gonio.prelim(src))
+    S = normalize(src)
     D = normalize(dst)
     orient_angles(axis₁.v, axis₂.v, S, D)
 end
 
 function reflection_angles(axis::Axis, s::AbstractVector, k::AbstractVector)
-    S = normalize(gonio.prelim(s))
+    S = normalize(s)
     K = normalize(k)
     θ = asin(norm(s) / 2norm(k))u"rad"
     reflection_angles(axis.v, S, K, θ)

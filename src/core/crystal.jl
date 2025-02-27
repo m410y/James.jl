@@ -1,8 +1,8 @@
 abstract type Sample end
 
 struct SingleCrystal <: Sample
-    p::Point3{Length}
-    UB::Mat3{Unitful.Energy}
+    p::Point3
+    UB::Mat3
 end
 
 (trans::IdentityTransformation)(cryst::SingleCrystal) = cryst

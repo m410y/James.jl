@@ -17,8 +17,16 @@ function characterize_peak(frame::Frame, coord1, coord2)
     max_coord = last.(minmax_coord)
     region = CartesianIndex(min_coord...):CartesianIndex(max_coord...)
     baseline = median(frame.image[region])
-    stat = sum(idx -> [1, idx.I...] * (frame.image[idx] - baseline) for idx in region)
+    stat = sum(idx -> [1, idx.I...] * (frame.image[idx] - baseline), region)
     intensity = stat[begin]
     coord = stat[begin+1:end] / intensity
-    Peak(intensity, baseline, coord, region, frame)
+    Peak(intensity, baseline, Vec(coord...), region, frame)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", peak::Peak{N}) where {N}
+    print(io, "$N-dimentional Peak:\n")
+    print(io, "  intensity: $(peak.intensity)\n")
+    print(io, "  baseline: $(peak.baseline)\n")
+    print(io, "  coordinate: $(Tuple(peak.coord))\n")
+    print(io, "  region: $(peak.region.indices)")
 end

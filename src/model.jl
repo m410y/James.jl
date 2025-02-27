@@ -36,7 +36,7 @@ end
 function reflex(model::StillModel, coord)
     r = model.detector(coord...) - model.sample.p
     n = normalize(r)
-    k0 = wvec_mean(model.spectrum)
+    k0 = mean(model.spectrum)
     s = norm(k0) * n - k0
     inv(Matrix(model.sample.UB)) * s
 end
@@ -46,23 +46,43 @@ reflex(model::ScanModel, coord) = reflex(StillModel(model, model.increment / 2),
 function coord(model::StillModel, hkl::AbstractVector)
     k0 = mean(model.spectrum)
     s = model.sample.UB * hkl
-    kd = k0 + s / 2 + dot(k, s) / dot(s, s)
+    kd = k0 + s * (1 / 2 - dot(k0, s) / dot(s, s))
     intersect_coord(model.detector, model.sample.p, kd)
 end
 
 function coord(model::ScanModel, hkl::AbstractVector)
     k0 = mean(model.spectrum)
     s0 = model.sample.UB * hkl
-    angles = reflection_angles(model.axis, s, k0)
+    angles = reflection_angles(model.axis, s0, k0)
     nearest = findmin(abs, rem2pi.(NoUnits.(angles .- model.increment / 2), RoundNearest))
     angle = angles[last(nearest)]
-    kd = k0 + model.axis(angle)(s0)
+    kd = k0 + model.axis(angle)(Vec3(s0))
     intersect_coord(model.detector, model.sample.p, kd)
 end
 
 function profile(model::Model, indices::NTuple{N,AbstractRange}, coord; mul = 1) where {N}
     hkl = reflex(model, coord)
     grid = Tuple((range(first(ax), last(ax), length(ax) * mul) for ax in indices))
-    vals = [idx -> intensity(model, hkl, idx.I) for idx in product(grid...)]
+    vals = [intensity(model, hkl, idx) for idx in product(grid...)]
     linear_interpolation(grid, vals, extrapolation_bc = 0.0)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", model::StillModel)
+    show(io, "text/plain", model.spectrum)
+    println(io)
+    show(io, "text/plain", model.detector)
+    println(io)
+    show(io, "text/plain", model.sample)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", model::ScanModel)
+    show(io, "text/plain", model.spectrum)
+    println(io)
+    show(io, "text/plain", model.detector)
+    println(io)
+    show(io, "text/plain", model.sample)
+    println(io)
+    show(io, "text/plain", model.axis)
+    println(io)
+    print(io, "  increment: $(model.increment)")
 end

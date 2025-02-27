@@ -1,7 +1,7 @@
 struct Detector{N}
     size::NTuple{N,Number}
-    p::Point3{Length}
-    e::NTuple{N,Vec3{Length}}
+    p::Point3
+    e::NTuple{N,Vec3}
 end
 
 const Detector2D = Detector{2}
@@ -22,7 +22,8 @@ function (detector::Detector)(coord::Vararg{Number})
 end
 
 function intersect_coord(detector::Detector, p::AbstractVector, v::AbstractVector)
-    _, coord... = hcat(-ustrip(v), detector.e...) \ (p - detector.p)
+    _, coord... =
+        hcat(ustrip.(v), [ustrip.(u"mm".(e)) for e in detector.e]...) \ ustrip.(u"mm".(p - detector.p))
     Vec(NoUnits.(coord)...)
 end
 
@@ -32,6 +33,9 @@ function Base.show(io::IO, ::MIME"text/plain", detector::Detector)
     print(io, "  zero position: [$(detector.p[1]), $(detector.p[2]), $(detector.p[3])]\n")
     print(io, "  coordinate lines:\n")
     for (n, e) in enumerate(detector.e)
-        print(io, "    line $n: [$(e[1]), $(e[2]), $(e[3])]\n")
+        print(io, "    line $n: [$(e[1]), $(e[2]), $(e[3])]")
+        if n != length(detector.e)
+            println(io)
+        end
     end
 end

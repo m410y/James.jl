@@ -15,11 +15,10 @@ function load_frame(sfrm)
         StillFrameSetting(angles_d, angles_s)
     else
         axis =
-            sfrm["AXIS"] == 2 ? model.gonio_c.axes[2] :
-            sfrm["AXIS"] == 3 ? model.gonio_c.axes[1] :
-            error("not supported axis $(sfrm["AXIS"])")
+            sfrm["AXIS"] == 2 ? 2 :
+            sfrm["AXIS"] == 3 ? 1 : error("not supported axis $(sfrm["AXIS"])")
         increment = sfrm["INCREME"]u"°"
-        ScanFrameSetting(angles_d, angles_s, axis, increment)
+        ScanFrameSetting(Vec(angles_d), Vec(angles_s), axis, increment)
     end
     Frame(image, setting)
 end

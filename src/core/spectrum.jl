@@ -20,6 +20,17 @@ function (spec::DoubletKαX)(k)
     spec.I * divergency * peak_sum
 end
 
+function Base.show(io::IO, ::MIME"text/plain", spec::DoubletKαX)
+    print(io, "Simple Kα spectrum along X axis:\n")
+    print(io, "  intensity: $(spec.I)\n")
+    print(io, "  intensity ratio: $(spec.ratio)\n")
+    print(io, "  Kα₁ energy: $(spec.E1)\n")
+    print(io, "  Kα₂ energy: $(spec.E2)\n")
+    print(io, "  X axis width: $(spec.ΔE)\n")
+    print(io, "  YZ plane width: $(spec.Δk)")
+end
+
+
 struct GriddedSpectrum <: Spectrum
     k0::Vec3
     M::Mat3

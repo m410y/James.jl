@@ -35,3 +35,28 @@ function model(experiment::Experiment, setting::ScanFrameSetting)
         setting.increment,
     )
 end
+
+function Base.show(io::IO, ::MIME"text/plain", experiment::Experiment)
+    show(io, "text/plain", experiment.spectrum)
+    println(io)
+    show(io, "text/plain", experiment.detector.goniometer)
+    println(io)
+    show(io, "text/plain", experiment.detector.object)
+    println(io)
+    show(io, "text/plain", experiment.sample.goniometer)
+    println(io)
+    show(io, "text/plain", experiment.sample.object)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", setting::StillFrameSetting)
+    print(io, "StillFrameSetting:\n")
+    print(io, "  detector angles: $(Tuple(setting.angles_d))\n")
+    print(io, "  sample angles: $(Tuple(setting.angles_s))")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", setting::ScanFrameSetting)
+    print(io, "ScanFrameSetting:\n")
+    print(io, "  detector angles: $(Tuple(setting.angles_d))\n")
+    print(io, "  sample angles: $(Tuple(setting.angles_s))\n")
+    print(io, "  sample axis $(setting.n_axis) increment: $(setting.increment)")
+end
