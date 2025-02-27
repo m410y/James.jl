@@ -1,41 +1,37 @@
-struct Detector{N}
-    size::NTuple{N,Number}
-    p::Point3
-    e::NTuple{N,Vec3}
+struct Detector{N,T}
+    size::NTuple{N,Int}
+    p::Point3{T}
+    e::Mat{3,N,T}
 end
 
 const Detector2D = Detector{2}
 
 (::IdentityTransformation)(detector::Detector) = detector
 function (trans::LinearMap)(detector::Detector)
-    Detector(detector.size, trans(detector.p), trans.(detector.e))
+    Detector(detector.size, trans(detector.p), trans(detector.e))
 end
 function (trans::Translation)(detector::Detector)
-    Detector(detector.size, trans(detector.p), trans.(detector.e))
+    Detector(detector.size, trans(detector.p), detector.e)
 end
 function (trans::AffineMap)(detector::Detector)
-    Detector(detector.size, trans(detector.p), trans.(detector.e))
+    Detector(detector.size, trans(detector.p), trans.linear * detector.e)
 end
 
-function (detector::Detector)(coord::Vararg{Number})
-    detector.p + sum(detector.e .* coord)
+(detector::Detector)(coord) = detector.p + detector.e * Vec(coord...)
+
+function intersect_coord(detector::Detector, p, v)
+    _, coord... = [-normalize(v) detector.e] \ (Vec(p...) - detector.p)
+    Vec(coord...)
 end
 
-function intersect_coord(detector::Detector, p::AbstractVector, v::AbstractVector)
-    _, coord... =
-        hcat(ustrip.(v), [ustrip.(u"mm".(e)) for e in detector.e]...) \ ustrip.(u"mm".(p - detector.p))
-    Vec(NoUnits.(coord)...)
-end
-
-function Base.show(io::IO, ::MIME"text/plain", detector::Detector)
-    print(io, "$(length(detector.size))-dimentional Detector:\n")
-    print(io, "  size: $(detector.size)\n")
-    print(io, "  zero position: [$(detector.p[1]), $(detector.p[2]), $(detector.p[3])]\n")
-    print(io, "  coordinate lines:\n")
-    for (n, e) in enumerate(detector.e)
-        print(io, "    line $n: [$(e[1]), $(e[2]), $(e[3])]")
-        if n != length(detector.e)
-            println(io)
-        end
+function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}
+    p = axis.p * SpaceUnit |> u"mm"
+    println(io, "$N-dimentional Detector:")
+    println(io, "  size: ", join(detector.size, "×"))
+    println(io, @sprintf("  zero position: [%6.1f%6.1f%6.1f]", p...))
+    println(io, "  coordinate lines:")
+    for (n, col) in enumerate(eachcol(detector.e))
+        e = col * SpaceUnit |> u"μm"
+        println(io, @sprintf("    line %d: [%6.1f%6.1f%6.1f]", n, e...))
     end
 end

@@ -5,6 +5,7 @@ using StaticArrays
 using OffsetArrays
 using Statistics
 using IterTools
+using Printf
 using GeometryBasics
 using CoordinateTransformations
 using Rotations
@@ -23,7 +24,7 @@ include("core/axis.jl")
 include("core/goniometer.jl")
 include("core/detector.jl")
 include("core/spectrum.jl")
-include("core/crystal.jl")
+include("core/sample.jl")
 
 include("model.jl")
 include("experiment.jl")

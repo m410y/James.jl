@@ -1,9 +1,9 @@
-angle(a::AbstractVector, b::AbstractVector) = atan(norm(cross(a, b)), dot(a, b))u"rad"
+angle(a::AbstractVector, b::AbstractVector) = atan(norm(cross(a, b)), dot(a, b))
 
 function axis_angle(b::AbstractVector, axis::AbstractVector, c::AbstractVector)
     b_a = b - axis * dot(axis, b)
     c_a = c - axis * dot(axis, c)
-    atan(dot(axis, cross(b_a, c_a)), dot(b_a, c_a))u"rad"
+    atan(dot(axis, cross(b_a, c_a)), dot(b_a, c_a))
 end
 
 function circle_intersection_angles(a, b, c)
@@ -35,7 +35,7 @@ function circle_intersection_angles(a, b, c)
         γ = 2atan(sqrt(sin_a * sin_b), sqrt(sin_s * sin_c))
     end
 
-    α * u"rad", β * u"rad", γ * u"rad"
+    α, β, γ
 end
 
 function orient_angles(
