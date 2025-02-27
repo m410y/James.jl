@@ -28,7 +28,7 @@ function fix_angle(gonio::Goniometer, (n, angle)::Pair)
     Goniometer(axes..., prelim = gonio.prelim)
 end
 
-function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
+function (gonio::Goniometer)(angles...)
     trans = gonio.prelim
     for (angle, axis) in zip(angles, gonio.axes)
         trans = axis(angle) ∘ trans
@@ -36,23 +36,8 @@ function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
     trans
 end
 
-function orient_angles(gonio::TwoCircleGoniometer, src::AbstractVector, dst::AbstractVector)
-    axis₁, axis₂ = (axis.v for axis in gonio.axes)
-    S = normalize(gonio.prelim(src))
-    D = normalize(dst)
-    orient_angles(axis₁, axis₂, S, D)
-end
-
-function reflection_angles(gonio::OneCircleGoniometer, s::AbstractVector, k::AbstractVector)
-    A = gonio.axes[1].v
-    S = normalize(gonio.prelim(s))
-    K = normalize(k)
-    θ = asin(norm(s) / 2norm(k))u"rad"
-    reflection_angles(A, S, K, θ)
-end
-
-function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}) where {N}
-    print(io, "$N-circle Goniometer:\n")
+function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer)
+    print(io, "$(length(gonio.axes))-circle Goniometer:\n")
     for (n, axis) in enumerate(gonio.axes)
         print(io, "  axis $n:\n")
         print(io, "    direction: [$(axis.v[1]), $(axis.v[2]), $(axis.v[3])]\n")
@@ -60,4 +45,13 @@ function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}) where {N}
     end
     print(io, "  preliminary transform:\n")
     print(io, "    $(gonio.prelim)")
+end
+
+struct Motorized{N,O}
+    goniometer::Goniometer{N}
+    object::O
+end
+
+function (motor::Motorized)(angles...)
+    motor.goniometer(angles...)(motor.object)
 end

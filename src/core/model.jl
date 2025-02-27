@@ -1,58 +1,61 @@
-abstract type Model{N} end
+abstract type Model end
 
-struct MovingModel{K,M,N} <: Model{N}
-    spec::Spectrum
-    detect::Detector{N}
-    gonio_d::Goniometer{M}
-    cryst::SingleCrystal
-    gonio_c::Goniometer{K}
+struct StillModel{K<:Spectrum,D<:Detector,S<:Sample} <: Model
+    spectrum::K
+    detector::D
+    sample::S
 end
 
-struct StillModel{N} <: Model{N}
-    spec::Spectrum
-    detect::Detector{N}
-    cryst::SingleCrystal
-end
-
-struct ScanModel{N} <: Model{N}
-    spec::Spectrum
-    detect::Detector{N}
-    cryst::SingleCrystal
+struct ScanModel{K<:Spectrum,D<:Detector,S<:Sample} <: Model
+    spectrum::K
+    detector::D
+    sample::S
     axis::Axis
-    angles::NTuple{2,Number}
+    increment::Number
 end
 
 StillModel(model::ScanModel, angle::Number) =
-    StillModel(model.spec, model.detect, model.axis(angle)(model.cryst))
-
-StillModel(model::MovingModel, angles_d, angles_c) = 
-    StillModel(
-        model.spec,
-        model.gonio_d(angles_d...)(model.detect),
-        model.gonio_c(angles_c...)(model.cryst),
-    )
-
-ScanModel(model::MovingModel, angles_d, angles_c, (n_axis, inc)) = 
-    ScanModel(
-        model.spec,
-        model.gonio_d(angles_d...)(model.detect),
-        model.gonio_c(angles_c...)(model.cryst),
-        model.gonio_c.axes[n_axis],
-        (0.0, inc)
-    )
+    StillModel(model.spectrum, model.detector, model.axis(angle)(model.sample))
 
 function intensity(model::StillModel, hkl::AbstractVector, coord)
-    s = model.cryst.UB * hkl
-    r = model.detect(coord...) - model.cryst.pos
+    s = model.sample.UB * hkl
+    r = model.detector(coord...) - model.sample.p
     n = normalize(r)
     k = n * dot(s, s) / 2dot(n, s) - s
-    NoUnits(model.spec(k))
+    NoUnits(model.spectrum(k))
 end
 
 function intensity(model::ScanModel, hkl::AbstractVector, coord)
     problem = IntegralProblem(
         (angle, _) -> intensity(StillModel(model, angle), hkl, coord),
-        NoUnits.(model.angles),
+        (0, NoUnits.(model.increment)),
     )
     solve(problem, HCubatureJL()).u
+end
+
+function reflex(model::StillModel, coord)
+    r = model.detector(coord...) - model.sample.p
+    n = normalize(r)
+    k0 = wvec_mean(model.spectrum)
+    s = norm(k0) * n - k0
+    inv(Matrix(model.sample.UB)) * s
+end
+
+reflex(model::ScanModel, coord) = reflex(StillModel(model, model.increment / 2), coord)
+
+function coord(model::StillModel, hkl::AbstractVector)
+    k0 = mean(model.spectrum)
+    s = model.sample.UB * hkl
+    kd = k0 + s/2 + dot(k, s) / dot(s, s)
+    intersect(model.detector, model.sample.p, kd)
+end
+
+function coord(model::ScanModel, hkl::AbstractVector)
+    k0 = mean(model.spectrum)
+    s0 = model.sample.UB * hkl
+    angles = reflection_angles(model.axis, s, k0)
+    nearest = findmin(abs, rem2pi.(NoUnits.(angles .- model.increment / 2), RoundNearest))
+    angle = angles[last(nearest)]
+    kd = k0 + model.axis(angle)(s0)
+    intersect(model.detector, model.sample.p, kd)
 end

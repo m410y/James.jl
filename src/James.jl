@@ -1,11 +1,14 @@
 module James
 
 using LinearAlgebra, StaticArrays
-using Unitful, UnitfulEquivalences
-using GeometryBasics, CoordinateTransformations, Rotations
+using OffsetArrays: Origin
 
 using Statistics
 using IterTools
+
+using GeometryBasics, CoordinateTransformations, Rotations
+using Unitful: Length, Energy
+using UnitfulEquivalences
 
 using DataFrames
 using ImageFiltering, ImageMorphology
@@ -13,20 +16,20 @@ using FileIO
 
 using Interpolations
 using Integrals
-using Optimization, FiniteDiff
-using Zygote
+using Optimization, FiniteDiff, Zygote
 
 include("core/utils.jl")
-include("core/axis.jl")
 include("core/angles.jl")
+include("core/axis.jl")
 include("core/goniometer.jl")
 include("core/detector.jl")
 include("core/spectrum.jl")
 include("core/crystal.jl")
 include("core/model.jl")
 
+include("experiment.jl")
+include("frame.jl")
 include("load.jl")
-include("peak.jl")
 include("profile.jl")
 include("refine.jl")
 

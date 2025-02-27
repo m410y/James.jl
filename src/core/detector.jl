@@ -1,7 +1,7 @@
 struct Detector{N}
     size::NTuple{N,Number}
-    p::Point3
-    e::NTuple{N,Vec3}
+    p::Point3{Length}
+    e::NTuple{N,Vec3{Length}}
 end
 
 const Detector2D = Detector{2}
@@ -17,11 +17,11 @@ function (trans::AffineMap)(detector::Detector)
     Detector(detector.size, trans(detector.p), trans.(detector.e))
 end
 
-function (detector::Detector)(coord::Vararg{Number,N})
+function (detector::Detector)(coord::Vararg{Number})
     detector.p + sum(detector.e .* coord)
 end
 
-function intersect(detector::Detector, p::AbstractVector, v::AbstractVector)
+function intersect_coord(detector::Detector, p::AbstractVector, v::AbstractVector)
     _, coord... = hcat(-ustrip(v), detector.e...) \ (p - detector.p)
     NoUnits.(coord)
 end

@@ -1,48 +1,33 @@
-function reflex(model::StillModel, coord)
-    r = model.detect(coord...) - model.cryst.pos
-    n = normalize(r)
-    k0 = wvec_mean(model.spec)
-    s = norm(k0) * n - k0
-    Vec3(inv(Matrix(model.cryst.UB)) * s)
-end
-
-function profile(model::Model, peak::Peak)
+function profile(model::Model, peak::Peak; mul = 1)
     hkl = reflex(model, peak.coord)
-    vals = [idx -> intensity(model, hkl, idx.I) for idx in peak.region]
-    itp = interpolate(axes(vals), vals, Gridded(Linear()))
-    extrapolate(itp, 0.0)
+    grid = Tuple((range(first(ax), last(ax), length(ax) * mul) for ax in peak.indices))
+    vals = [idx -> intensity(model, hkl, idx.I) for idx in product(grid...)]
+    linear_interpolation(grid, vals, extrapolation_bc = 0.0)
 end
 
-struct SimpleConvParams{N}
-    scale::Number
+struct FitParams{N}
     shift::Vec{N}
-    sigma::Vec{N}
+    scale::Number
+    sigma::Number
     baseline::Number
 end
 
-function profile_convolution(
-    params::SimpleConvParams,
-    coords::AbstractArray,
-    profile,
-)
-    shifted = map(coord -> profile(coord[1] - shift_x, coord[2] - shift_y), coords)
-    scale * imfilter(shifted, Kernel.gaussian((sigma_x, sigma_y))) .+ baseline
+function profile_fit(coords::AbstractArray, profile, p::FitParams)
+    shifted = map(coord -> profile((coord .- p.shift)...), coords)
+    p.scale * imfilter(shifted, Kernel.gaussian(p.sigma)) .+ p.baseline
 end
 
-function image_stat(image::AbstractArray, coords::AbstractArray)
-    stat = sum(p -> p[1] * [1, p[2]...] * [1, p[2]...]', zip(image, coords))
-    stat0 = stat[begin]
-    stat1 = stat[begin+1:end, begin]
-    stat2 = stat[begin+1:end, begin+1:end]
-    stat0, stat1 / stat0, (stat2 * stat0 - stat1 * stat1') / stat0^2
-end
-
-function refine_profile(image::AbstractArray, coords::AbstractArray, profile)
-    imstat = image_stat(image, coords)
+function refine_profile(peak::Peak{N}, profile; maxscale = 4, maxsigma = 16) where {N}
+    coords = Tuple.(collect(CartesianIndices(peak.image)))
+    profile_int = sum(coord -> profile(coord...), coords)
+    scale0 = peak.int / profile_int
+    baseline0 = median(peak.image)
 
     lsq = OptimizationFunction(
         (u, p) -> begin
-            vals = profile_correction(u..., coords, profile)
+            shift..., scale, sigma, baseline = u
+            params = FitParams(shift, scale, sigma, baseline)
+            vals = profile_fit(coords, profile, params)
             sum(abs2, image .- vals)
         end,
         AutoFiniteDiff(),
@@ -50,12 +35,14 @@ function refine_profile(image::AbstractArray, coords::AbstractArray, profile)
     solve(
         OptimizationProblem(
             lsq,
-            [0.5, 0.0, -13.0, 1.0, 1.0, 80.0],
-            lb = [0.1, -10.0, -20.0, 0.0, 0.0, 0.0],
-            ub = [10.0, 10.0, 0.0, 3.0, 3.0, 200.0],
+            [zeros(N)..., scale0, 1.0, baseline0],
+            lb = [-ones(N)..., scale0 / maxscale, 0.0, minimum(peak.image)],
+            ub = [onces(N)..., scale0 * maxscale, maxsigma, mean(peak.image)],
         ),
         Optimization.LBFGS(),
     ).u
 end
 
-
+function refined_position(peak::Peak{N}, params::FitParams) where {N}
+    Vec{N}(peak.coord .+ params.shift)
+end
