@@ -33,9 +33,9 @@ function Base.show(io::IO, ::MIME"text/plain", spec::DoubletKαX)
     print(io, "  intensity: $(spec.I)\n")
     print(io, "  intensity ratio: $(spec.ratio)\n")
     print(io, "  Kα₁ energy: $(spec.E1 * ReciprocalUnit)\n")
-    print(io, "  Kα₂ energy: $(spec.E2 * ReciprocalUni)\n")
-    print(io, "  X axis width: $(spec.ΔE * ReciprocalUni)\n")
-    print(io, "  YZ plane width: $(spec.Δk * ReciprocalUni)")
+    print(io, "  Kα₂ energy: $(spec.E2 * ReciprocalUnit)\n")
+    print(io, "  X axis width: $(spec.ΔE * ReciprocalUnit)\n")
+    print(io, "  YZ plane width: $(spec.Δk * ReciprocalUnit)")
 end
 
 
