@@ -1,37 +1,40 @@
-struct Detector{N,T}
+struct Detector{N,T<:AbstractAffineMap}
     size::NTuple{N,Int}
-    p::Point3{T}
-    e::Mat{3,N,T}
+    trans::T
 end
 
 const Detector2D = Detector{2}
 
 (::IdentityTransformation)(detector::Detector) = detector
 function (trans::LinearMap)(detector::Detector)
-    Detector(detector.size, trans(detector.p), trans(detector.e))
+    Detector(detector.size, trans ∘ detector.trans)
 end
 function (trans::Translation)(detector::Detector)
-    Detector(detector.size, trans(detector.p), detector.e)
+    Detector(detector.size, trans ∘ detector.trans)
 end
 function (trans::AffineMap)(detector::Detector)
-    Detector(detector.size, trans(detector.p), trans.linear * detector.e)
+    Detector(detector.size, trans ∘ detector.trans)
 end
 
-(detector::Detector)(coord) = detector.p + detector.e * Vec(coord...)
+(detector::Detector{N})(coord::Vararg{Number,N}) where{N} = detector.trans(Vec{N}(coord))
+(detector::Detector{N})(coord::AbstractVector) where{N} = detector.trans(coord)
 
-function intersect_coord(detector::Detector, p, v)
-    _, coord... = [-normalize(v) detector.e] \ (Vec(p...) - detector.p)
-    Vec(coord...)
+# TODO: make it work for arbitrary transform
+function intersect_coord(detector::Detector{2}, p, v)
+    _, coord... = [-Vec3(v) detector.trans.linear] \ (Vec3(p...) - detector.trans.translation)
+    Vec2(coord...)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}
-    p = axis.p * SpaceUnit |> u"mm"
-    println(io, "$N-dimentional Detector:")
+function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}; punit = u"mm", eunit = u"μm") where {N}
+    p = detector(zeros(N))
+    println(io, summary(detector), ":")
     println(io, "  size: ", join(detector.size, "×"))
-    println(io, @sprintf("  zero position: [%6.1f%6.1f%6.1f]", p...))
-    println(io, "  coordinate lines:")
-    for (n, col) in enumerate(eachcol(detector.e))
-        e = col * SpaceUnit |> u"μm"
-        println(io, @sprintf("    line %d: [%6.1f%6.1f%6.1f]", n, e...))
+    println(io, "  zero position [$punit]: ", @sprintf("%6.1f, %6.1f, %6.1f", NoUnits.(p * SpaceUnit / punit)...))
+    println(io, "  coordinate lines [$eunit]:")
+    for n in 1:N
+        coord = zeros(N)
+        coord[n] = 1
+        e = detector(coord) - p
+        println(io, "    line $n: ", @sprintf("%6.1f, %6.1f, %6.1f", NoUnits.(e * SpaceUnit / eunit)...))
     end
 end

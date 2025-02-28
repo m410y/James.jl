@@ -22,3 +22,10 @@ function load_frame(sfrm)
     end
     Frame(image, setting)
 end
+
+function load_crystal_p4p(p4p_file::AbstractDict; unit = u"Å^-1")
+    coef = ReciprocalUnit != unit ? ustrip(uconvert(ReciprocalUnit, 1.0 * unit, Spectral())) : 1.0
+    SingleCrystal(zero(Point3), Mat3(p4p_file["ORT"]) * coef)
+end
+
+load_crystal_p4p(filename::AbstractString; unit = u"Å^-1") = load_crystal_p4p(load(filename), unit = unit)

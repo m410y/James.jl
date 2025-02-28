@@ -20,22 +20,25 @@ function _lorentz(x::Number, x0::Number, γ::Number)
     1 / (1 + ((x - x0) / γ)^2) / π / γ
 end
 
-function (spec::DoubletKαX)(k)
+function (spec::DoubletKαX)(k::AbstractVector)
     divergency = exp(-(k[2]^2 + k[3]^2) / spec.Δk^2 / 2) / (2π * spec.Δk^2)
     peak1 = _lorentz(k[1], spec.E1, spec.ΔE)
     peak2 = _lorentz(k[1], spec.E2, spec.ΔE)
     peak_sum = (spec.ratio * peak1 + peak2) / (spec.ratio + 1)
     spec.I * divergency * peak_sum
 end
+(spec::DoubletKαX)(k::Vararg{Number,3}) = spec(Vec3(k))
 
-function Base.show(io::IO, ::MIME"text/plain", spec::DoubletKαX)
-    print(io, "Simple Kα spectrum along X axis:\n")
-    print(io, "  intensity: $(spec.I)\n")
-    print(io, "  intensity ratio: $(spec.ratio)\n")
-    print(io, "  Kα₁ energy: $(spec.E1 * ReciprocalUnit)\n")
-    print(io, "  Kα₂ energy: $(spec.E2 * ReciprocalUnit)\n")
-    print(io, "  X axis width: $(spec.ΔE * ReciprocalUnit)\n")
-    print(io, "  YZ plane width: $(spec.Δk * ReciprocalUnit)")
+function Base.show(io::IO, ::MIME"text/plain", spec::DoubletKαX; unit = u"eV")
+    convert(E) = unit != ReciprocalUnit ? ustrip(uconvert(unit, E * ReciprocalUnit, Spectral())) : E
+    E0 = norm(mean(spec))
+    println(io, summary(spec), ":")
+    println(io, "  intensity: $(spec.I)")
+    println(io, "  intensity ratio: $(spec.ratio)")
+    println(io, "  Kα₁ energy: ", @sprintf("%8.3f", convert(spec.E1)), " $unit")
+    println(io, "  Kα₂ energy: ", @sprintf("%8.3f", convert(spec.E2)), " $unit")
+    println(io, "  X width   : ", @sprintf("%8.3f", abs(convert(E0 + spec.ΔE) - convert(E0))), " $unit")
+    println(io, "  YZ width  : ", @sprintf("%8.3f", abs(convert(E0 + spec.Δk) - convert(E0))), " $unit")
 end
 
 

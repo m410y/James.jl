@@ -1,12 +1,13 @@
-struct Goniometer{N,T}
-    axes::NTuple{N,Axis{T}}
-    prelim::Transformation
+struct Goniometer{N,T<:AbstractAffineMap}
+    axes::NTuple{N,Axis}
+    prelim::T
 end
 
 const OneCircleGoniometer = Goniometer{1}
 const TwoCircleGoniometer = Goniometer{2}
 const ThreeCircleGoniometer = Goniometer{3}
 
+# TODO: optimize
 function Goniometer(
     axes::Vararg{Union{Transformation,Axis}};
     prelim = IdentityTransformation(),
@@ -22,27 +23,27 @@ function Goniometer(
     Goniometer(Tuple(reverse(active_axes)), prelim)
 end
 
+# TODO: optimize
 function fix_angle(gonio::Goniometer, (n, angle))
     axes = Any[gonio.axes...]
     axes[n] = axes[n](angle)
     Goniometer(axes..., prelim = gonio.prelim)
 end
 
-function (gonio::Goniometer)(angles...)
+function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
     trans = gonio.prelim
-    for (angle, axis) in zip(angles, gonio.axes)
-        trans = axis(angle) ∘ trans
+    for n in 1:N
+        trans = gonio.axes[n](angles[n]) ∘ trans
     end
     trans
 end
 
-function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}) where {N}
-    println(io, "$N-circle Goniometer:")
+function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}; unit=u"μm") where {N}
+    println(io, summary(gonio), ":")
     for (n, axis) in enumerate(gonio.axes)
-        p = axis.p * SpaceUnit |> u"μm"
-        println(io, "  axis $n:")
-        println(io, @sprintf("    position: [%6.2f%6.2f%6.2f]", p...))
-        println(io, @sprintf("    direction: [%6.3f%6.3f%6.3f]", axis.v...))
+        println(io, "  Axis $n:")
+        println(io, "    position [$unit]: ", @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...))
+        println(io, "    direction    : ", @sprintf("%6.3f, %6.3f, %6.3f", axis.v...))
     end
 end
 
