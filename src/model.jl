@@ -6,20 +6,20 @@ struct StillModel{K<:Spectrum,D<:Detector,S<:Sample} <: Model
     sample::S
 end
 
-struct ScanModel{T,K<:Spectrum,D<:Detector,S<:Sample} <: Model
+struct ScanModel{K<:Spectrum,D<:Detector,S<:Sample} <: Model
     spectrum::K
     detector::D
     sample::S
-    axis::Axis{T}
-    increment::T
+    axis::Axis
+    increment::Number
 end
 
 StillModel(model::ScanModel, angle) =
     StillModel(model.spectrum, model.detector, model.axis(angle)(model.sample))
 
 function intensity(model::StillModel, hkl, coord)
-    s = model.sample.UB * Vec(hkl...)
-    r = model.detector(coord...) - model.sample.p
+    s = model.sample.UB * hkl
+    r = model.detector(coord) - model.sample.p
     n = normalize(r)
     k = n * dot(s, s) / 2dot(n, s) - s
     model.spectrum(k)
@@ -38,7 +38,7 @@ function reflex(model::StillModel, coord)
     n = normalize(r)
     k0 = mean(model.spectrum)
     s = norm(k0) * n - k0
-    inv(Matrix(model.sample.UB)) * s
+    model.sample.UB \ s
 end
 
 reflex(model::ScanModel, coord) = reflex(StillModel(model, model.increment / 2), coord)
