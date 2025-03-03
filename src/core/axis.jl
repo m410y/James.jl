@@ -28,7 +28,11 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", axis::Axis; unit = u"μm")
     println(io, summary(axis), ":")
-    println(io, "  position [$unit]: ", @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...))
+    println(
+        io,
+        "  position [$unit]: ",
+        @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...)
+    )
     println(io, "  direction    : ", @sprintf("%6.3f, %6.3f, %6.3f", axis.v...))
 end
 

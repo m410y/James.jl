@@ -4,6 +4,7 @@ using LinearAlgebra
 using StaticArrays
 using OffsetArrays
 using Statistics
+using Distributions
 using IterTools
 using Printf
 using GeometryBasics

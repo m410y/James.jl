@@ -1,4 +1,4 @@
-struct Goniometer{N,T<:AbstractAffineMap}
+struct Goniometer{N,T<:Transformation}
     axes::NTuple{N,Axis}
     prelim::T
 end
@@ -32,17 +32,21 @@ end
 
 function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
     trans = gonio.prelim
-    for n in 1:N
+    for n = 1:N
         trans = gonio.axes[n](angles[n]) ∘ trans
     end
     trans
 end
 
-function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}; unit=u"μm") where {N}
+function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}; unit = u"μm") where {N}
     println(io, summary(gonio), ":")
     for (n, axis) in enumerate(gonio.axes)
         println(io, "  Axis $n:")
-        println(io, "    position [$unit]: ", @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...))
+        println(
+            io,
+            "    position [$unit]: ",
+            @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...)
+        )
         println(io, "    direction    : ", @sprintf("%6.3f, %6.3f, %6.3f", axis.v...))
     end
 end

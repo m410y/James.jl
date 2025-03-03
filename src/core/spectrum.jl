@@ -1,56 +1,68 @@
 abstract type Spectrum{T} end
 
-struct DoubletKαX{T} <: Spectrum{T}
-    I::T
-    ratio::T
-    E1::T
-    E2::T
-    ΔE::T
-    Δk::T
+struct DistSpectrum{T,D<:Distribution} <: Spectrum{T}
+    intensity::T
+    mean::Vec3{T}
+    cov::Symmetric{T,Mat3{T}}
+    dist::D
+    function DistSpectrum(
+        intensity::Number,
+        mean::AbstractVector,
+        cov::AbstractMatrix,
+        dist::D,
+    ) where {D<:Distribution}
+        new{Float64,D}(intensity, Vec3d(mean), Symmetric(Mat3d(cov)), dist)
+    end
 end
 
-mean(spec::DoubletKαX) =
-    Vec3([1, 0, 0]) * (spec.ratio * spec.E1 + spec.E2) / (spec.ratio + 1)
-
-function _gauss(x::Number, x0::Number, σ::Number)
-    exp(-((x - x0) / σ)^2 / 2) / sqrt(2π) / σ
+function DistSpectrum(
+    intensity::Number,
+    dist::Distribution,
+    domain::NTuple{2,AbstractVector};
+    alg = HCubatureJL(),
+)
+    ifunc(u, _) = [u..., 1] * [u..., 1]' * intensity * pdf(dist, u)
+    solution = solve(IntegralProblem(ifunc, domain), alg)
+    if solution.retcode != ReturnCode.Success
+        error("Cant integrate function")
+    end
+    intensity = solution.u[4, 4]
+    mean = solution.u[1:3, 4] / intensity
+    cov = solution.u[1:3, 1:3] / intensity - mean * mean'
+    DistSpectrum(intensity, mean, cov, fun)
 end
 
-function _lorentz(x::Number, x0::Number, γ::Number)
-    1 / (1 + ((x - x0) / γ)^2) / π / γ
+(spec::DistSpectrum)(k::AbstractVector) = spec.intensity * pdf(spec.dist, k)
+intensity(spec::DistSpectrum) = spec.intensity
+Statistics.mean(spec::DistSpectrum) = spec.mean
+Statistics.cov(spec::DistSpectrum) = spec.cov
+
+struct SpectrumSum{T,N} <: Spectrum{T}
+    intensity::T
+    mean::Vec3{T}
+    cov::Symmetric{T,Mat3{T}}
+    specs::NTuple{N,Spectrum}
+    function SpectrumSum(
+        intensity::Number,
+        mean::AbstractVector,
+        cov::AbstractMatrix,
+        dist::NTuple{N,Spectrum},
+    ) where {N}
+        new{Float64,N}(intensity, Vec3d(mean), Symmetric(Mat3d(cov)), dist)
+    end
 end
 
-function (spec::DoubletKαX)(k::AbstractVector)
-    divergency = exp(-(k[2]^2 + k[3]^2) / spec.Δk^2 / 2) / (2π * spec.Δk^2)
-    peak1 = _lorentz(k[1], spec.E1, spec.ΔE)
-    peak2 = _lorentz(k[1], spec.E2, spec.ΔE)
-    peak_sum = (spec.ratio * peak1 + peak2) / (spec.ratio + 1)
-    spec.I * divergency * peak_sum
-end
-(spec::DoubletKαX)(k::Vararg{Number,3}) = spec(Vec3(k))
-
-function Base.show(io::IO, ::MIME"text/plain", spec::DoubletKαX; unit = u"eV")
-    convert(E) = unit != ReciprocalUnit ? ustrip(uconvert(unit, E * ReciprocalUnit, Spectral())) : E
-    E0 = norm(mean(spec))
-    println(io, summary(spec), ":")
-    println(io, "  intensity: $(spec.I)")
-    println(io, "  intensity ratio: $(spec.ratio)")
-    println(io, "  Kα₁ energy: ", @sprintf("%8.3f", convert(spec.E1)), " $unit")
-    println(io, "  Kα₂ energy: ", @sprintf("%8.3f", convert(spec.E2)), " $unit")
-    println(io, "  X width   : ", @sprintf("%8.3f", abs(convert(E0 + spec.ΔE) - convert(E0))), " $unit")
-    println(io, "  YZ width  : ", @sprintf("%8.3f", abs(convert(E0 + spec.Δk) - convert(E0))), " $unit")
+function SpectrumSum(specs::Vararg{Spectrum,N}) where {N}
+    Q = sum(s -> let I = intensity(s), E = mean(s), C = cov(s)
+        [C*I+E*E' I*E; I*E' I]
+    end, specs)
+    sum_intensity = Q[4, 4]
+    sum_mean = Q[1:3, 4] / sum_intensity
+    sum_cov = Q[1:3, 1:3] / sum_intensity - sum_mean * sum_mean'
+    SpectrumSum(sum_intensity, sum_mean, sum_cov, specs)
 end
 
-
-struct GriddedSpectrum{T} <: Spectrum{T}
-    k0::Vec3{T}
-    M::Mat3{T}
-    itp::Interpolations.Extrapolation{T,3}
-end
-
-mean(spec::GriddedSpectrum) = spec.k0
-
-function (spec::GriddedSpectrum)(k)
-    itp_coords = M * (Vec(k...) - k0)
-    itp(itp_coords...)
-end
+(spec::SpectrumSum)(k::AbstractVector) = sum(s -> s(k), spec.specs)
+intensity(spec::SpectrumSum) = spec.intensity
+Statistics.mean(spec::SpectrumSum) = spec.mean
+Statistics.cov(spec::SpectrumSum) = spec.cov
