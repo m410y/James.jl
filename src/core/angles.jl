@@ -52,7 +52,7 @@ function orient_angles(
     ∠A₁A₂D = axis_angle(axis₁, axis₂, dst)
     Δα₁, Δα₂, _ = circle_intersection_angles(DA₂, SA₁, A₁A₂)
 
-    [(∠SA₁A₂ + Δα₁, ∠A₁A₂D + Δα₂), (∠SA₁A₂ - Δα₁, ∠A₁A₂D - Δα₂)]
+    (∠SA₁A₂ + Δα₁, ∠A₁A₂D + Δα₂), (∠SA₁A₂ - Δα₁, ∠A₁A₂D - Δα₂)
 end
 
 function reflection_angles(
@@ -67,5 +67,5 @@ function reflection_angles(
     ∠SAD = axis_angle(src, axis, dir)
     Δα, _, _ = circle_intersection_angles(pi / 2 + θ, SA, AD)
 
-    [∠SAD + Δα, ∠SAD - Δα]
+    ∠SAD + Δα, ∠SAD - Δα
 end

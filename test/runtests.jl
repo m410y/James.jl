@@ -90,5 +90,5 @@ end
     @test frame.setting == setting
     experiment = James.load_experiment(sfrm, p4p, preset)
     @test experiment.detector.object.trans.translation[1] ≈ 128.533 atol = 1e-3
-    save("data/experiment.jld2", "exp", experiment)
+    save("data/experiment.jld2", "experiment", experiment, "frame", frame)
 end

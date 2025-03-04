@@ -44,8 +44,7 @@ function orient_angles(axis₁::Axis, axis₂::Axis, src, dst)
 end
 
 function reflection_angles(axis::Axis, s, k)
-    S = normalize(s)
-    K = normalize(k)
-    θ = asin(norm(s) / 2norm(k))
-    reflection_angles(axis.v, S, K, θ)
+    d = 1 / norm(s)
+    λ = 1 / norm(k)
+    reflection_angles(axis.v, s * d, k * λ, asin(λ / 2d))
 end

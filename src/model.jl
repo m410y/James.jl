@@ -20,9 +20,9 @@ StillModel(model::ScanModel, angle::Number) =
 function reflection_angle(model::ScanModel, hkl::AbstractVector)
     k0 = mean(model.spectrum)
     s0 = model.sample.UB * hkl
-    angles = reflection_angles(model.axis, s0, k0)
-    nearest = findmin(abs, rem2pi.(NoUnits.(angles .- model.increment / 2), RoundNearest))
-    angles[last(nearest)]
+    angle1, angle2 = reflection_angles(model.axis, s0, k0)
+    center = model.increment / 2
+    angle_norm(angle1 - center) < angle_norm(angle2 - center) ? angle1 : angle2
 end
 
 function intensity(model::StillModel, hkl::AbstractVector, coord::AbstractVector)
@@ -33,33 +33,64 @@ function intensity(model::StillModel, hkl::AbstractVector, coord::AbstractVector
     model.spectrum(k)
 end
 
-function intensity(model::ScanModel, hkl::AbstractVector, coord::AbstractVector)
-    @show angle = reflection_angle(model, hkl)
-    @show sample0 = model.axis(angle)(model.sample)
-    @show s = sample0.UB * hkl
-    @show r = model.detector(coord) - sample0.p
-    @show n = normalize(r)
-    @show k = n * dot(s, s) / 2dot(n, s) - s
-    @show ds = cross(model.axis.v, s)
-    @show dk = n * dot(s, s) * dot(n, ds) / 2dot(n, s)^2 - ds
+function intensity_divided(model::ScanModel{K,D,S}, hkl::AbstractVector, coord::AbstractVector) where {K,D,S}
+    angle = reflection_angle(model, hkl)
+    sample0 = model.axis(angle)(model.sample)
+    s = sample0.UB * hkl
+    r = model.detector(coord) - sample0.p
+    n = normalize(r)
+    k = n * dot(s, s) / 2dot(n, s) - s
+    ds = cross(model.axis.v, s)
+    dk = n * dot(s, s) * dot(n, ds) / 2dot(n, s)^2 - ds
 
-    @show A = inv(cov(model.spectrum))
-    @show c1 = dot(dk, A, dk)
-    @show c2 = dot(dk, A, k - mean(model.spectrum))
-    @show C = Symmetric(Mat2(c1, c2, c2, 1))
-    @show eig = eigen(C)
+    IC = inv(cov(model.spectrum))
+    kshift = k - mean(model.spectrum)
+    c1 = dot(dk, IC, dk)
+    c2 = dot(dk, IC, kshift)
+    c3 = dot(kshift, IC, kshift)
+    C = Symmetric(Mat2(c1, c2, c2, c3 - 1))
+    eig = eigen(C)
     if det(eig) > 0
-        return 0
+        return solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (0, model.increment)), HCubatureJL()).u
     end
     N = eig.vectors * [0 1; 1 0] * sqrt(abs.(Diagonal(eig.values))) * [1 1; 1 -1]
     lb, ub = extrema(N[1, :] ./ N[2, :])
-    if lb > model.increment || ub < 0
-        return 0
-    end
+    left = lb > 0 ? solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (lb, ub)), HCubatureJL()).u : 0
+    center = solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (lb, ub)), HCubatureJL()).u
+    right = ub < model.increment ? solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (ub, model.increment)), HCubatureJL()).u : 0
+    left + center + right
+end
 
-    return 1
-    problem = IntegralProblem((u, _) -> model.spectrum(k + dk * u), (lb, ub))
-    solve(problem, HCubatureJL()).u
+function intensity(model::ScanModel{K,D,S}, hkl::AbstractVector, coord::AbstractVector) where {K,D,S}
+    angle = reflection_angle(model, hkl)
+    sample0 = model.axis(angle)(model.sample)
+    s = sample0.UB * hkl
+    r = model.detector(coord) - sample0.p
+    n = normalize(r)
+    k = n * dot(s, s) / 2dot(n, s) - s
+    ds = cross(model.axis.v, s)
+    dk = n * dot(s, s) * dot(n, ds) / 2dot(n, s)^2 - ds
+
+    IC = inv(cov(model.spectrum))
+    kshift = k - mean(model.spectrum)
+    c1 = dot(dk, IC, dk)
+    c2 = dot(dk, IC, kshift)
+    c3 = dot(kshift, IC, kshift)
+    C = Symmetric(Mat2(c1, c2, c2, c3 - 1))
+    eig = eigen(C)
+    if det(eig) > 0
+        return solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (0, model.increment)), HCubatureJL()).u
+    end
+    N = eig.vectors * [0 1; 1 0] * sqrt(abs.(Diagonal(eig.values))) * [1 1; 1 -1]
+    lb, ub = extrema(N[1, :] ./ N[2, :])
+    left = lb > 0 ? solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (lb, ub)), HCubatureJL()).u : 0
+    center = solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (lb, ub)), HCubatureJL()).u
+    right = ub < model.increment ? solve(IntegralProblem((u, _) -> model.spectrum(k + dk * u), (ub, model.increment)), HCubatureJL()).u : 0
+    left + center + right
+end
+
+function intensity(model::ScanModel{K,D,S}, hkl::AbstractVector, coord::AbstractVector) where {K<:SpectrumSum,D,S}
+    sum(spec -> intensity(ScanModel(spec, model.detector, model.sample, model.axis, model.increment), hkl, coord), model.spectrum.specs)
 end
 
 function reflex(model::StillModel, coord::AbstractVector)
