@@ -26,20 +26,16 @@ function intersect_coord(detector::Detector{2}, p, v)
     Vec2(coord...)
 end
 
-function Base.show(
-    io::IO,
-    ::MIME"text/plain",
-    detector::Detector{N};
-    punit = u"mm",
-    eunit = u"μm",
-) where {N}
+function Base.show(io::IO, ::MIME"text/plain", detector::Detector{N}) where {N}
+    punit = u"mm"
+    eunit = u"μm"
     p = detector(zeros(N))
     println(io, summary(detector), ":")
     println(io, "  size: ", join(detector.size, "×"))
     println(
         io,
         "  zero position [$punit]: ",
-        @sprintf("%6.1f, %6.1f, %6.1f", NoUnits.(p * SpaceUnit / punit)...)
+        @sprintf("%6.1f, %6.1f, %6.1f", space_convert.(punit, p)...)
     )
     println(io, "  coordinate lines [$eunit]:")
     for n = 1:N
@@ -49,7 +45,7 @@ function Base.show(
         println(
             io,
             "    line $n: ",
-            @sprintf("%6.1f, %6.1f, %6.1f", NoUnits.(e * SpaceUnit / eunit)...)
+            @sprintf("%6.1f, %6.1f, %6.1f", space_convert.(eunit, e)...)
         )
     end
 end

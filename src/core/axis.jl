@@ -26,12 +26,13 @@ function (trans::AffineMap)(axis::Axis)
     Axis(trans.linear * axis.v, trans(axis.p))
 end
 
-function Base.show(io::IO, ::MIME"text/plain", axis::Axis; unit = u"μm")
+function Base.show(io::IO, ::MIME"text/plain", axis::Axis)
+    punit = u"μm"
     println(io, summary(axis), ":")
     println(
         io,
-        "  position [$unit]: ",
-        @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...)
+        "  position [$punit]: ",
+        @sprintf("%6.2f, %6.2f, %6.2f", space_convert.(punit, axis.p)...)
     )
     println(io, "  direction    : ", @sprintf("%6.3f, %6.3f, %6.3f", axis.v...))
 end

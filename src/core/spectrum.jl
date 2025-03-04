@@ -54,7 +54,7 @@ end
 
 function SpectrumSum(specs::Vararg{Spectrum,N}) where {N}
     Q = sum(s -> let I = intensity(s), E = mean(s), C = cov(s)
-        [C*I+E*E' I*E; I*E' I]
+        [C+E*E' E; E' 1] * I
     end, specs)
     sum_intensity = Q[4, 4]
     sum_mean = Q[1:3, 4] / sum_intensity
@@ -66,3 +66,17 @@ end
 intensity(spec::SpectrumSum) = spec.intensity
 Statistics.mean(spec::SpectrumSum) = spec.mean
 Statistics.cov(spec::SpectrumSum) = spec.cov
+
+function Base.show(io::IO, ::MIME"text/plain", spec::Spectrum)
+    kunit = u"eV"
+    println(summary(spec), ":")
+    println("  intensity: ", round(intensity(spec), sigdigits = 5))
+    println(
+        "  mean [$kunit]: ",
+        @sprintf("%8.2f, %8.2f, %8.2f", reciprocal_convert.(kunit, mean(spec))...)
+    )
+    println("  covariation [$kunit]:")
+    for row in eachrow(reciprocal_convert.(kunit, cov(spec)))
+        println(io, @sprintf("    %8.2f %8.2f %8.2f", row...))
+    end
+end

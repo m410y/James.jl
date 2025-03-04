@@ -70,11 +70,13 @@ end
     )
     crystal = James.SingleCrystal(
         zero(Point3),
-        Mat3([
-            263.8191691135128 -29.23875709212313 -2173.4789539515464
-            -1251.6637536684098 1787.9694304584657 -175.9809519389325
-            1777.1334594838004 1263.6362877901117 198.71123540450782
-        ]),
+        Mat3(
+            [
+                263.8191691135128 -29.23875709212313 -2173.4789539515464
+                -1251.6637536684098 1787.9694304584657 -175.9809519389325
+                1777.1334594838004 1263.6362877901117 198.71123540450782
+            ],
+        ),
     )
     crystal_loaded = James.load_crystal_p4p(p4p)
     @test crystal_loaded.UB ≈ crystal.UB rtol = 1e-10
@@ -83,7 +85,7 @@ end
         Vec1(deg2rad(266.1)),
         Vec2(deg2rad(181.4004), deg2rad(245.62)),
         2,
-        deg2rad(4)
+        deg2rad(4),
     )
     @test frame.setting == setting
     experiment = James.load_experiment(sfrm, p4p, preset)

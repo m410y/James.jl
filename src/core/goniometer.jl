@@ -38,14 +38,15 @@ function (gonio::Goniometer{N})(angles::Vararg{Number,N}) where {N}
     trans
 end
 
-function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}; unit = u"μm") where {N}
+function Base.show(io::IO, ::MIME"text/plain", gonio::Goniometer{N}) where {N}
+    punit = u"μm"
     println(io, summary(gonio), ":")
     for (n, axis) in enumerate(gonio.axes)
         println(io, "  Axis $n:")
         println(
             io,
-            "    position [$unit]: ",
-            @sprintf("%6.2f, %6.2f, %6.2f", NoUnits.(axis.p * SpaceUnit / unit)...)
+            "    position [$punit]: ",
+            @sprintf("%6.2f, %6.2f, %6.2f", space_convert.(punit, axis.p)...)
         )
         println(io, "    direction    : ", @sprintf("%6.3f, %6.3f, %6.3f", axis.v...))
     end
