@@ -1,28 +1,87 @@
 export Model
 
-struct Model
-    xray1::XRay
-    xray2::XRay
-    detector::Detector
-    theta_axis::RotAxis
-    omega_axis::RotAxis
-    chi_axis::RotAxis
-    phi_axis::RotAxis
+const wavelengths = Dict(
+    "Cu" => (Kα1 = 1.54059290u"Å", Kα2 = 1.54442740u"Å"),
+    "Mo" => (Kα1 = 0.70931715u"Å", Kα2 = 0.71360700u"Å")
+)
+
+struct Detector
+    x::PVec
+    y::PVec
+    p::PVec
 end
 
-function Model(sfrm::SiemensFrame)
-    E1 = uconvert(runit, sfrm.lambdaKα1 * u"Å", Spectral()) |> ustrip
-    E2 = uconvert(runit, sfrm.lambdaKα2 * u"Å", Spectral()) |> ustrip
-    distance = uconvert(munit, sfrm.distance * u"cm") |> ustrip
-    px = uconvert(munit, 512u"cm" / sfrm.pix512percm) |> ustrip
-    center = [sfrm.xcenter, sfrm.ycenter]
+struct Crystal
+    a::PVec
+    b::PVec
+    c::PVec
+    p::PVec
+end
+
+struct Model
+    xray1::PVec
+    xray2::PVec
+    detector::Detector
+    phi_ax::BiVec
+    omega_ax::BiVec
+    chi_ax::BiVec
+    tth_ax::BiVec
+end
+
+function model_from_sfrm(sfrm::SiemensFrame; correct_wavelen = false, px = missing, center = missing, distance = missing)
+    xray1, xray2 = let
+        λ1, λ2 = if correct_wavelen
+            anode = titlecase(sfrm.target)
+            wavelengths[anode].Kα1, wavelengths[anode].Kα2
+        else
+            sfrm.lambdaKα1 * u"Å", sfrm.lambdaKα2 * u"Å"
+        end
+        E1 = ustrip(uconvert(runit, λ1, Spectral()))
+        E2 = ustrip(uconvert(runit, λ2, Spectral()))
+        direction(E1, 0, 0), direction(E2, 0, 0)
+    end
+    detector = let
+        distance = coalesce(distance, ustrip(uconvert(munit, sfrm.distance * u"cm")))
+        px = coalesce(px, ustrip(uconvert(munit, 512u"cm" / sfrm.pix512percm / size(sfrm.image, 1))))
+        cx, cy = coalesce(center, (sfrm.xcenter, sfrm.ycenter))
+        ex = direction(0, -px, 0)
+        ey = direction(0, 0, px)
+        pcenter = point(distance, 0, 0)
+        Detector(
+            ex,
+            ey,
+            pcenter - cx * ex - cy * ey
+        )
+    end
     Model(
-        XRay(E1, 0, 0),
-        XRay(E2, 0, 0),
-        Detector([0, -px, 0], [0, 0, px], [distance, center[1] * px, -center[2] * px]),
-        RotAxis(0, 0, 1),
-        RotAxis(0, 0, 1),
-        RotAxis(-1, 0, 0),
-        RotAxis(0, 0, -1)
+        xray1,
+        xray2,
+        detector,
+        rotaxis(0, 0, -1),
+        rotaxis(0, 0, 1),
+        rotaxis(-1, 0, 0),
+        rotaxis(0, 0, 1),
     )
+end
+model_from_sfrm(path::AbstractString; kwargs...) = model_from_sfrm(SFRM.load(path), kwargs...)
+
+function crystal_from_p4p(p4p::AbstractDict; pos = missing)
+    UB = p4p["ORT"] * ustrip(uconvert(runit, 1u"Å^-1", Spectral()))
+    p = coalesce(pos, zeros(3))
+    Crystal(
+        (direction(col) for col in eachcol(UB))...,
+        point(p...)
+    )
+end
+crystal_from_p4p(path::AbstractString; kwargs...) = crystal_from_p4p(P4P.load(path), kwargs...)
+
+struct Frame
+    image::AbstractMatrix
+    phi::Real
+    chi::Real
+    omega::Real
+end
+
+function frame_from_sfrm(sfrm::SiemensFrame)
+
 end
