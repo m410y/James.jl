@@ -17,6 +17,8 @@ using P4P
 const runit = u"keV"
 const munit = u"mm"
 
+include("detector.jl")
 include("model.jl")
+include("geometry.jl")
 
 end # module James
