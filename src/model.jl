@@ -5,13 +5,6 @@ const wavelengths = Dict(
     "Mo" => (Kα1 = 0.70931715u"Å", Kα2 = 0.71360700u"Å")
 )
 
-struct Crystal
-    a::PVec
-    b::PVec
-    c::PVec
-    p::PVec
-end
-
 struct Model
     beam::PVec
     E1::Real

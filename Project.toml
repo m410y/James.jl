@@ -5,7 +5,6 @@ version = "0.1.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
-LeastSquaresOptim = "0fc2ff8b-aaa3-5acd-a817-1944a5e08891"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 P4P = "22628b5c-e01d-4582-92b9-755789d4ce9a"
 PGA3D = "c8088a5c-1754-4275-a93e-9fb112a4f0ac"
@@ -17,11 +16,7 @@ UnitfulEquivalences = "da9c4bc3-91c8-4f02-8a40-6b990d2a7e0c"
 
 [compat]
 Dates = "1.11.0"
-LeastSquaresOptim = "0.8.7"
 LinearAlgebra = "1.11.0"
-P4P = "0.1.0"
-PGA3D = "0.1.0"
-SFRM = "0.1.4"
 StaticArrays = "1.9.13"
 Statistics = "1.11.1"
 Unitful = "1"
