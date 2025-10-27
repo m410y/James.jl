@@ -4,4 +4,17 @@ version = "0.1.0"
 authors = ["m410y <m410y@proton.me>"]
 
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 JamesCore = "979fc264-f091-4d46-bc40-ce8d18beab5d"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+P4P = "22628b5c-e01d-4582-92b9-755789d4ce9a"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[compat]
+DataFrames = "1.8.1"
+GeometryBasics = "0.5.10"
+LinearAlgebra = "1.12.0"
+Reexport = "1.2.2"
+Unitful = "1.25.1"
