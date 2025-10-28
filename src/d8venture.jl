@@ -1,6 +1,7 @@
 module D8Venture
 
 using GeometryBasics
+using CoordinateTransformations
 using Unitful
 import Unitful: Length
 
@@ -23,17 +24,48 @@ function collision(tthD, omega, distance)
 end
 
 function angle_calculator(fname::AbstractString)
-    axes = [RotAxis("-z"), RotAxis("-x"), RotAxis("z")]
-    χ = 54.7112u"°"
-    axes_reduced, prelim = fix_axes_params(axes, [2 => χ])
-    n = Vec3("x")
     p4p = P4P.load(fname)
     UB = p4p["ORT"] 
-    λ = p4p["SOURCE"][2]
+    model = instrument_model(
+        λ = p4p["SOURCE"][2]u"Å",
+        xc = p4p["ADPAR"][1],
+        yc = p4p["ADPAR"][2],
+    )
     AngleCalculator(
-        prelim.linear * UB,
-        (ax.v for ax in axes_reduced),
-        n / λ
+        model.prelim * UB,
+        (ax.v for ax in model.saxes),
+        model.beam.k
+    )
+end
+
+struct Model{T<:Real}
+    daxes::Tuple{TransAxis{T},RotAxis{T}}
+    saxes::Tuple{RotAxis{T},RotAxis{T}}
+    prelim::Mat3{T}
+    detect::Detector{T}
+    beam::Ray{T}
+end
+
+function instrument_model(; 
+    λ::Length = 1.54184u"Å",
+    xc = 387.2198,
+    yc = 503.9324,
+    χ = 54.7112u"°",
+    px::Length = 135.3u"μm"
+)
+    euler_axes = [RotAxis("-z"), RotAxis("-x"), RotAxis("z")]
+    saxes, prelim = fix_axes_params(euler_axes, [2 => χ])
+    prelim = Mat3(prelim.linear)
+    k = Vec3("x") / NoUnits(λ / u"Å")
+    ex = NoUnits(px / u"mm") * Vec3("-y")
+    ey = NoUnits(px / u"mm") * Vec3("z")
+    p = -xc * ex - yc * ey
+    Model{Float64}(
+        (TransAxis("x"), RotAxis("z")),
+        tuple(saxes...),
+        prelim,
+        Detector([ex ey], p),
+        Ray(k)
     )
 end
 

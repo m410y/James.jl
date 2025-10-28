@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["m410y <m410y@proton.me>"]
 
 [deps]
+CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 JamesCore = "979fc264-f091-4d46-bc40-ce8d18beab5d"
@@ -13,6 +14,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
+CoordinateTransformations = "0.6.4"
 DataFrames = "1.8.1"
 GeometryBasics = "0.5.10"
 LinearAlgebra = "1.12.0"

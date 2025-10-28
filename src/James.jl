@@ -11,7 +11,6 @@ using Reexport
 export AngleCalculator, bragg_tth, collect_angles
 
 include("angles.jl")
-include("propose.jl")
 
 export D8Venture
 
