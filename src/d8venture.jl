@@ -51,20 +51,22 @@ function instrument_model(;
     xc = 387.2198,
     yc = 503.9324,
     χ = 54.7112u"°",
-    px::Length = 135.3u"μm"
+    px::Length = 135.3u"μm",
+    dsize = (768, 1024)
 )
-    euler_axes = [RotAxis("-z"), RotAxis("-x"), RotAxis("z")]
-    saxes, prelim = fix_axes_params(euler_axes, [2 => χ])
+    T = Float64
+    euler_axes = [RotAxis{T}("-z"), RotAxis{T}("-x"), RotAxis{T}("z")]
+    saxes, prelim = fix_axes_params(euler_axes, 2 => χ)
     prelim = Mat3(prelim.linear)
     k = Vec3("x") / NoUnits(λ / u"Å")
     ex = NoUnits(px / u"mm") * Vec3("-y")
     ey = NoUnits(px / u"mm") * Vec3("z")
     p = -xc * ex - yc * ey
-    Model{Float64}(
-        (TransAxis("x"), RotAxis("z")),
+    Model{T}(
+        (TransAxis{T}("x"), RotAxis{T}("z")),
         tuple(saxes...),
         prelim,
-        Detector([ex ey], p),
+        Detector{T}([ex ey], p, dsize),
         Ray(k)
     )
 end

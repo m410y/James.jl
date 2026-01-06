@@ -3,6 +3,7 @@ module James
 using LinearAlgebra
 
 using GeometryBasics
+using Rotations
 using DataFrames
 
 using Reexport

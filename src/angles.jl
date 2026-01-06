@@ -33,6 +33,7 @@ default_hkl_iterator(acalc::AngleCalculator) = MillerIterator(acalc.UB'acalc.UB,
 
 function collect_angles(acalc::AngleCalculator{T}, hkls = default_hkl_iterator(acalc)) where {T<:Real}
     df = DataFrame("hkl" => Vec3i[], "2θ" => T[], "φ" => T[], "ω" => T[])
+    axes = map(RotAxis, acalc.axes)
     for hkl in hkls
         angles = acalc(hkl)
         if isnothing(angles)
@@ -40,7 +41,9 @@ function collect_angles(acalc::AngleCalculator{T}, hkls = default_hkl_iterator(a
         end
         tth = bragg_tth(acalc, hkl)
         for (φ, ωs) in angles, ω in ωs
-            push!(df, (hkl, tth, φ, ω))
+            q = fix_axes_params(axes, 1 => φ, 2 => ω)[2](acalc.UB * hkl)
+            k = acalc.k + q
+            push!(df, (hkl, tth * sign(dot(k, cross(acalc.k, acalc.axes[2]))), φ, ω))
         end
     end
     df
